@@ -179,10 +179,10 @@ Sec 27 | Buffer: 27/30 | SAFE (System HDI: 47.0)
 Sec 28 | Buffer: 28/30 | BIOLOGICAL VETO: FATIGUE LIMIT CROSSED (88)
 ```
 
-**============================================================
-🚨 ACTION: BOX BOX BOX (Safety Override Triggered) 🚨
+**=======================================================       
+🚨 ACTION: BOX BOX BOX (Safety Override Triggered) 🚨          
 🚨 REASON: BIOLOGICAL VETO: FATIGUE LIMIT CROSSED (88)
-===========================================================**
+=======================================================**
 
 
 
