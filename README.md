@@ -88,7 +88,8 @@ The IBM Granite decision engine calculates the Dual-Trigger logic in real-time.
 To run the simulation: python sovereign_pitwall_poc.py
 📊 Example Simulation Output
 Here is the console output demonstrating the AI calculating the live HDI window, successfully running standard race variance, followed by a sudden driver biometric emergency at second 28 that triggers the Redline Veto:
-Plaintext
+
+```text
 /// INITIATING SOVEREIGN 30-SECOND EDGE BUFFER ///
 /// BIO-MECHANICAL SYNCHRONIZATION ONLINE ///
 
@@ -121,13 +122,12 @@ Sec 26 | Buffer: 26/30 | SAFE (System HDI: 40.0)
 Sec 27 | Buffer: 27/30 | SAFE (System HDI: 47.0)
 Sec 28 | Buffer: 28/30 | BIOLOGICAL VETO: FATIGUE LIMIT CROSSED (88)
 
-
-================================================
-🚨 ACTION: BOX BOX BOX (Safety Override Triggered) 🚨     
+============================================================
+🚨 ACTION: BOX BOX BOX (Safety Override Triggered) 🚨
 🚨 REASON: BIOLOGICAL VETO: FATIGUE LIMIT CROSSED (88)
-====================================================
+===========================================================
 
-
+```
 
 
 🏁 3. Why This Solution Matters in Motorsport
