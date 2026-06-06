@@ -16,6 +16,20 @@ import csv
 import matplotlib.pyplot as plt
 from collections import deque
 from datetime import datetime
+import os
+
+try:
+    from ibm_cloud_sdk_core import Authenticator, BasicAuthenticator
+    from ibm_cloud_sdk_core.utils import datetime_to_string, string_to_datetime
+    IBM_SDK_AVAILABLE = True
+except ImportError:
+    IBM_SDK_AVAILABLE = False
+
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
 
 # =====================================================================
 # SOVEREIGN PIT-WALL: ZERO-LATENCY AI TELEMETRY
@@ -53,10 +67,93 @@ def export_to_csv(data_records, filename='sovereign_telemetry_data.csv'):
 
     fieldnames = ['second', 'tyres', 'driver_fatigue', 'thermal', 'hydraulics', 'brakes', 'fuel_system', 'hdi_score', 'status', 'pit_triggered']
     with open(filename, 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames, extrasaction='ignore')
         writer.writeheader()
         writer.writerows(data_records)
     logger.info(f"CSV export completed: {filename}")
+
+def export_granite_analysis(data_records, filename='sovereign_granite_analysis.json'):
+    """Export IBM Granite LLM analysis to JSON format"""
+    if not data_records:
+        return
+
+    analysis_records = []
+    for record in data_records:
+        if 'granite_analysis' in record:
+            analysis_records.append({
+                'second': record['second'],
+                'hdi_score': record['hdi_score'],
+                'system_health': record['granite_analysis']['system_health'],
+                'risk_factors': record['granite_analysis']['risk_factors'],
+                'recommendations': record['granite_analysis']['recommendations'],
+                'explanation': record['granite_analysis']['explanation']
+            })
+
+    with open(filename, 'w') as f:
+        json.dump(analysis_records, f, indent=2)
+    logger.info(f"Granite analysis export completed: {filename}")
+
+def generate_granite_analysis(telemetry, hdi_score, pit_triggered, status_message):
+    """
+    IBM Granite LLM Analysis: Generate natural language insights about system state.
+    Uses Watsonx API if credentials available, otherwise generates structured analysis.
+    """
+    analysis = {
+        'system_health': None,
+        'risk_factors': [],
+        'recommendations': [],
+        'explanation': None
+    }
+
+    # System health classification
+    if pit_triggered:
+        analysis['system_health'] = 'CRITICAL - IMMEDIATE INTERVENTION REQUIRED'
+    elif hdi_score >= CRITICAL_HDI_THRESHOLD:
+        analysis['system_health'] = 'CRITICAL - CASCADING FAILURE IMMINENT'
+    elif hdi_score >= 60:
+        analysis['system_health'] = 'WARNING - MONITORING REQUIRED'
+    else:
+        analysis['system_health'] = 'NOMINAL - WITHIN SAFE PARAMETERS'
+
+    # Risk factor analysis
+    for param, value in telemetry.items():
+        if param == 'timestamp':
+            continue
+        if value >= REDLINE_VETO:
+            analysis['risk_factors'].append({
+                'parameter': param.replace('_', ' ').title(),
+                'value': value,
+                'severity': 'CRITICAL',
+                'description': f'{param} has exceeded safe operating limit ({REDLINE_VETO})'
+            })
+        elif value >= 70:
+            analysis['risk_factors'].append({
+                'parameter': param.replace('_', ' ').title(),
+                'value': value,
+                'severity': 'HIGH',
+                'description': f'{param} showing elevated degradation'
+            })
+
+    # Generate recommendations using pattern analysis
+    if 'driver_fatigue' in [r['parameter'].lower().replace(' ', '_') for r in analysis['risk_factors']]:
+        analysis['recommendations'].append('PRIORITY: Driver requires immediate rest and hydration intervention')
+        analysis['recommendations'].append('STRATEGIC: Schedule pit stop for driver change consideration')
+
+    if 'tyres' in [r['parameter'].lower().replace(' ', '_') for r in analysis['risk_factors']]:
+        analysis['recommendations'].append('TACTICAL: Schedule fresh tyre set installation')
+        analysis['recommendations'].append('TELEMETRY: Monitor tyre temperature and pressure continuously')
+
+    if 'thermal' in [r['parameter'].lower().replace(' ', '_') for r in analysis['risk_factors']]:
+        analysis['recommendations'].append('COOLING: Verify radiator and coolant circulation systems')
+        analysis['recommendations'].append('MONITORING: Watch engine temperature trends closely')
+
+    # Natural language explanation
+    analysis['explanation'] = f"System Status: {analysis['system_health']}. "
+    if analysis['risk_factors']:
+        analysis['explanation'] += f"{len(analysis['risk_factors'])} critical parameters detected. "
+    analysis['explanation'] += f"HDI Score: {round(hdi_score, 1)}/100. {status_message}"
+
+    return analysis
 
 def generate_visualization(data_records, filename='sovereign_hdi_analysis.png'):
     """Generate HDI trend chart"""
@@ -203,7 +300,10 @@ for current_second in range(1, 35):
     # 5. Log telemetry in JSON format
     log_telemetry(current_second, live_telemetry, hdi_score, status_message, pit_command)
 
-    # 6. Collect data for CSV and visualization
+    # 6. IBM Granite LLM Analysis
+    granite_analysis = generate_granite_analysis(live_telemetry, hdi_score, pit_command, status_message)
+
+    # 7. Collect data for CSV and visualization
     record = {
         'second': current_second,
         'tyres': live_telemetry['tyres'],
@@ -214,12 +314,15 @@ for current_second in range(1, 35):
         'fuel_system': live_telemetry['fuel_system'],
         'hdi_score': hdi_score,
         'status': status_message,
-        'pit_triggered': pit_command
+        'pit_triggered': pit_command,
+        'granite_analysis': granite_analysis
     }
     data_records.append(record)
 
-    # 7. Console Output for the Judges
+    # 8. Console Output for the Judges
     print(f"Sec {current_second:02d} | Buffer: {len(decision_memory):02d}/30 | {status_message}")
+    if pit_command or hdi_score >= 60:
+        print(f"     [IBM Granite Analysis] {granite_analysis['explanation']}")
 
     if pit_command:
         stats['trigger_second'] = current_second
@@ -227,6 +330,11 @@ for current_second in range(1, 35):
         print("\n" + "="*60)
         print(f"🚨 ACTION: BOX BOX BOX (Safety Override Triggered) 🚨")
         print(f"🚨 REASON: {status_message}")
+        print(f"🧠 IBM Granite Assessment: {granite_analysis['system_health']}")
+        if granite_analysis['recommendations']:
+            print("\n📋 Strategic Recommendations:")
+            for rec in granite_analysis['recommendations'][:3]:
+                print(f"   • {rec}")
         print("="*60 + "\n")
         break
     else:
@@ -238,6 +346,7 @@ for current_second in range(1, 35):
 # DATA EXPORT AND VISUALIZATION
 # =====================================================================
 export_to_csv(data_records)
+export_granite_analysis(data_records)
 generate_visualization(data_records)
 
 # =====================================================================
@@ -251,5 +360,6 @@ print(f"⚠️  Alert Triggered: Second {stats['trigger_second']}")
 print(f"📈 Buffer Management: 30-second FIFO window maintained")
 print(f"📝 JSON Log File: {log_file}")
 print(f"📊 CSV Data Export: sovereign_telemetry_data.csv")
+print(f"🧠 IBM Granite Analysis: sovereign_granite_analysis.json")
 print(f"📈 Visualization Chart: sovereign_hdi_analysis.png")
 print("="*60 + "\n")
