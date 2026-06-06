@@ -184,7 +184,42 @@ Sec 28 | Buffer: 28/30 | BIOLOGICAL VETO: FATIGUE LIMIT CROSSED (88)
 🚨 REASON: BIOLOGICAL VETO: FATIGUE LIMIT CROSSED (88)
 =======================================================**
 
+---
 
+**📈 Advanced Features**
+
+The PoC implementation includes comprehensive data analysis and logging capabilities:
+
+**Structured JSON Logging (sovereign_telemetry_log.json)**
+- Real-time structured logging of all telemetry events
+- Captures timestamp, HDI score, parameter values, and decision status
+- Machine-readable format for external analysis and integration
+- Example log entry:
+```json
+{
+  "timestamp": "2026-06-06T22:41:10.890485",
+  "second": 28,
+  "telemetry": {"tyres": 45, "driver_fatigue": 88, "thermal": 50, "hydraulics": 20, "brakes": 30, "fuel_system": 15},
+  "hdi_score": 50.0,
+  "status": "BIOLOGICAL VETO: FATIGUE LIMIT CROSSED (88)",
+  "pit_triggered": true
+}
+```
+
+**CSV Data Export (sovereign_telemetry_data.csv)**
+- Complete race simulation data exported to CSV format
+- Compatible with spreadsheet applications and data analysis tools
+- Includes all parameters, HDI scores, timestamps, and safety status
+- Enables post-race analysis and pattern identification
+
+**Visualization & Analytics (sovereign_hdi_analysis.png)**
+- Dual-chart visualization showing:
+  - **Top Chart:** System HDI trend over 28 seconds with cascading failure threshold (70.0)
+  - **Bottom Chart:** Driver fatigue evolution with Redline Veto threshold (85.0)
+- High-resolution output (300 DPI) for presentations and documentation
+- Clearly demonstrates the safety system's detection moment at second 28
+
+---
 
 **🏁 3. Why This Solution Matters in Motorsport**
 ```text

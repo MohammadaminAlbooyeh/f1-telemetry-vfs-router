@@ -12,6 +12,8 @@ import random
 import time
 import json
 import logging
+import csv
+import matplotlib.pyplot as plt
 from collections import deque
 from datetime import datetime
 
@@ -43,6 +45,55 @@ def log_telemetry(second, telemetry, hdi_score, status, pit_triggered=False):
         'pit_triggered': pit_triggered
     }
     logger.info(json.dumps(log_entry))
+
+def export_to_csv(data_records, filename='sovereign_telemetry_data.csv'):
+    """Export telemetry data to CSV format"""
+    if not data_records:
+        return
+
+    fieldnames = ['second', 'tyres', 'driver_fatigue', 'thermal', 'hydraulics', 'brakes', 'fuel_system', 'hdi_score', 'status', 'pit_triggered']
+    with open(filename, 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(data_records)
+    logger.info(f"CSV export completed: {filename}")
+
+def generate_visualization(data_records, filename='sovereign_hdi_analysis.png'):
+    """Generate HDI trend chart"""
+    if not data_records:
+        return
+
+    seconds = [r['second'] for r in data_records]
+    hdi_scores = [r['hdi_score'] for r in data_records]
+    fatigue_levels = [r['driver_fatigue'] for r in data_records]
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+
+    # HDI Trend
+    ax1.plot(seconds, hdi_scores, 'b-o', linewidth=2, markersize=6, label='System HDI')
+    ax1.axhline(y=CRITICAL_HDI_THRESHOLD, color='orange', linestyle='--', label=f'Cascading Threshold ({CRITICAL_HDI_THRESHOLD})')
+    ax1.fill_between(seconds, 0, hdi_scores, alpha=0.3)
+    ax1.set_xlabel('Time (seconds)')
+    ax1.set_ylabel('HDI Score (0-100)')
+    ax1.set_title('Sovereign Pit-Wall: Holistic Degradation Index (HDI) Over Time')
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
+    ax1.set_ylim([0, 100])
+
+    # Driver Fatigue Trend
+    ax2.plot(seconds, fatigue_levels, 'r-s', linewidth=2, markersize=6, label='Driver Fatigue')
+    ax2.axhline(y=REDLINE_VETO, color='red', linestyle='--', label=f'Redline Veto ({REDLINE_VETO})')
+    ax2.fill_between(seconds, 0, fatigue_levels, alpha=0.3, color='red')
+    ax2.set_xlabel('Time (seconds)')
+    ax2.set_ylabel('Fatigue Level (0-100)')
+    ax2.set_title('Driver Fatigue: Bio-Mechanical Degradation')
+    ax2.grid(True, alpha=0.3)
+    ax2.legend()
+    ax2.set_ylim([0, 100])
+
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    logger.info(f"Visualization saved: {filename}")
 
 # 1. The Architect's Locked 6-Pillar Weights (Must equal 1.00)
 WEIGHTS = {
@@ -128,6 +179,7 @@ print("/// INITIATING SOVEREIGN 30-SECOND EDGE BUFFER ///")
 print("/// BIO-MECHANICAL SYNCHRONIZATION ONLINE ///\n")
 
 stats = {'safe_count': 0, 'alert_count': 0, 'trigger_second': None}
+data_records = []
 
 for current_second in range(1, 35):
 
@@ -151,7 +203,22 @@ for current_second in range(1, 35):
     # 5. Log telemetry in JSON format
     log_telemetry(current_second, live_telemetry, hdi_score, status_message, pit_command)
 
-    # 6. Console Output for the Judges
+    # 6. Collect data for CSV and visualization
+    record = {
+        'second': current_second,
+        'tyres': live_telemetry['tyres'],
+        'driver_fatigue': live_telemetry['driver_fatigue'],
+        'thermal': live_telemetry['thermal'],
+        'hydraulics': live_telemetry['hydraulics'],
+        'brakes': live_telemetry['brakes'],
+        'fuel_system': live_telemetry['fuel_system'],
+        'hdi_score': hdi_score,
+        'status': status_message,
+        'pit_triggered': pit_command
+    }
+    data_records.append(record)
+
+    # 7. Console Output for the Judges
     print(f"Sec {current_second:02d} | Buffer: {len(decision_memory):02d}/30 | {status_message}")
 
     if pit_command:
@@ -168,6 +235,12 @@ for current_second in range(1, 35):
     time.sleep(0.2)
 
 # =====================================================================
+# DATA EXPORT AND VISUALIZATION
+# =====================================================================
+export_to_csv(data_records)
+generate_visualization(data_records)
+
+# =====================================================================
 # SUMMARY REPORT
 # =====================================================================
 print("\n" + "="*60)
@@ -177,4 +250,6 @@ print(f"✅ Safe Intervals: {stats['safe_count']} seconds")
 print(f"⚠️  Alert Triggered: Second {stats['trigger_second']}")
 print(f"📈 Buffer Management: 30-second FIFO window maintained")
 print(f"📝 JSON Log File: {log_file}")
+print(f"📊 CSV Data Export: sovereign_telemetry_data.csv")
+print(f"📈 Visualization Chart: sovereign_hdi_analysis.png")
 print("="*60 + "\n")
