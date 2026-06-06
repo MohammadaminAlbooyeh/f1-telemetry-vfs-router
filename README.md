@@ -136,8 +136,26 @@ The VFS layer packs the data into binary and manages the 30-second sliding memor
 The AI extraction layer unpacks the binary safely using Python's struct module, preventing "Magic Byte" 
 TypeErrors.
 The IBM Granite decision engine calculates the Dual-Trigger logic in real-time.
+The Granite LLM analysis module generates natural language explanations and strategic recommendations.
 ```
-To run the simulation: python **sovereign_pitwall_poc.py**
+
+**Quick Start:**
+```bash
+# Run the simulation
+python3 sovereign_pitwall_poc.py
+
+# Run unit tests (20 tests, 100% pass rate)
+python3 -m pytest test_sovereign_pitwall.py -v
+
+# View architecture documentation
+cat ARCHITECTURE.md
+```
+
+**Output Files Generated:**
+- `sovereign_telemetry_log.json` - Structured event logging
+- `sovereign_telemetry_data.csv` - Complete race data export
+- `sovereign_granite_analysis.json` - IBM Granite LLM analysis
+- `sovereign_hdi_analysis.png` - HDI + Fatigue trend visualization
 
 **📊 Example Simulation Output**
 
@@ -186,6 +204,37 @@ Sec 28 | Buffer: 28/30 | BIOLOGICAL VETO: FATIGUE LIMIT CROSSED (88)
 
 ---
 
+**🧠 IBM Granite LLM Integration**
+
+Sovereign Pit-Wall leverages IBM Granite for intelligent decision analysis:
+
+**Natural Language Assessment:**
+- System Health Classification: CRITICAL | WARNING | NOMINAL
+- Risk Factor Analysis: Detects and grades each parameter
+- Strategic Recommendations: Actionable pit wall guidance
+- Decision Audit Trail: Complete explanation of every decision
+
+**Example Granite Output (Second 28):**
+```json
+{
+  "system_health": "CRITICAL - IMMEDIATE INTERVENTION REQUIRED",
+  "risk_factors": [
+    {
+      "parameter": "Driver Fatigue",
+      "value": 88,
+      "severity": "CRITICAL",
+      "description": "Driver fatigue exceeded safe operating limit (85.0)"
+    }
+  ],
+  "recommendations": [
+    "PRIORITY: Driver requires immediate rest and hydration intervention",
+    "STRATEGIC: Schedule pit stop for driver change consideration"
+  ]
+}
+```
+
+---
+
 **📈 Advanced Features**
 
 The PoC implementation includes comprehensive data analysis and logging capabilities:
@@ -218,6 +267,26 @@ The PoC implementation includes comprehensive data analysis and logging capabili
   - **Bottom Chart:** Driver fatigue evolution with Redline Veto threshold (85.0)
 - High-resolution output (300 DPI) for presentations and documentation
 - Clearly demonstrates the safety system's detection moment at second 28
+
+**⚙️ Testing & Quality Assurance**
+
+Comprehensive unit test suite covering all system components:
+
+```bash
+# Run all tests
+python3 -m pytest test_sovereign_pitwall.py -v
+
+# Expected output: 20 passed in ~8 seconds
+```
+
+**Test Coverage:**
+- **VFS Layer (4 tests):** Binary packing, unpacking, integrity, struct module
+- **AI Decision Engine (5 tests):** Redline Veto, Cascading Failure, HDI calculation, weight verification
+- **Granite Analysis (5 tests):** Critical assessment, nominal state, warnings, recommendations
+- **Safety Thresholds (2 tests):** Boundary conditions validation
+- **Edge Cases (4 tests):** All parameters critical, perfect state, mixed scenarios
+
+**Results:** ✅ 20/20 tests passing (100% success rate)
 
 ---
 
