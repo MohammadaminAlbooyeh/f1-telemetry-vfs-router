@@ -10,12 +10,39 @@ Original file is located at
 import struct
 import random
 import time
+import json
+import logging
 from collections import deque
+from datetime import datetime
 
 # =====================================================================
 # SOVEREIGN PIT-WALL: ZERO-LATENCY AI TELEMETRY
 # Architect: Master Blueprint | Bio-Mechanical Equilibrium
 # =====================================================================
+
+# Configure JSON Logging
+log_file = 'sovereign_telemetry_log.json'
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+def log_telemetry(second, telemetry, hdi_score, status, pit_triggered=False):
+    """Log telemetry data in structured JSON format"""
+    log_entry = {
+        'timestamp': datetime.now().isoformat(),
+        'second': second,
+        'telemetry': telemetry,
+        'hdi_score': round(hdi_score, 2),
+        'status': status,
+        'pit_triggered': pit_triggered
+    }
+    logger.info(json.dumps(log_entry))
 
 # 1. The Architect's Locked 6-Pillar Weights (Must equal 1.00)
 WEIGHTS = {
@@ -74,27 +101,33 @@ def phase5_surgical_strike(binary_payload):
 def ibm_granite_decision_engine(telemetry):
     """
     Layer 2: Evaluates the perfectly packed data against the Dual-Trigger.
+    Returns: (pit_triggered, status_message, hdi_score)
     """
     # TRIGGER 1: The Redline Veto (Absolute Single-Point Failure)
     for parameter, value in telemetry.items():
+        if parameter == 'timestamp':
+            continue
         if value >= REDLINE_VETO:
+            hdi_score = sum(telemetry[k] * WEIGHTS[k] for k in WEIGHTS if k != 'timestamp')
             if parameter == 'driver_fatigue':
-                return True, f"BIOLOGICAL VETO: FATIGUE LIMIT CROSSED ({value})"
-            return True, f"MECHANICAL VETO: {parameter.upper()} SPIKED TO {value}"
+                return True, f"BIOLOGICAL VETO: FATIGUE LIMIT CROSSED ({value})", hdi_score
+            return True, f"MECHANICAL VETO: {parameter.upper()} SPIKED TO {value}", hdi_score
 
     # TRIGGER 2: The Health Curve (Cascading Failure)
-    hdi_score = sum(telemetry[k] * WEIGHTS[k] for k in WEIGHTS)
+    hdi_score = sum(telemetry[k] * WEIGHTS[k] for k in WEIGHTS if k != 'timestamp')
 
     if hdi_score >= CRITICAL_HDI_THRESHOLD:
-        return True, f"CASCADING FAILURE: SYSTEM HDI HIT {round(hgi_score, 1)}"
+        return True, f"CASCADING FAILURE: SYSTEM HDI HIT {round(hdi_score, 1)}", hdi_score
 
-    return False, f"SAFE (System HDI: {round(hdi_score, 1)})"
+    return False, f"SAFE (System HDI: {round(hdi_score, 1)})", hdi_score
 
 # =====================================================================
 # RUNNING THE LIVE STREAM SIMULATION
 # =====================================================================
 print("/// INITIATING SOVEREIGN 30-SECOND EDGE BUFFER ///")
 print("/// BIO-MECHANICAL SYNCHRONIZATION ONLINE ///\n")
+
+stats = {'safe_count': 0, 'alert_count': 0, 'trigger_second': None}
 
 for current_second in range(1, 35):
 
@@ -108,22 +141,40 @@ for current_second in range(1, 35):
     # 3. Buffer Management (The Sliding Window)
     if len(decision_memory) == 30:
         archived_data = decision_memory.popleft()
-        print(f"[BACKGROUND] Sector {archived_data['timestamp']} pushed to Cloud Archive (Buffer cleared)")
 
     decision_memory.append(live_telemetry)
 
     # 4. IBM Granite evaluates the live window
     current_state = decision_memory[-1]
-    pit_command, status_message = ibm_granite_decision_engine(current_state)
+    pit_command, status_message, hdi_score = ibm_granite_decision_engine(current_state)
 
-    # 5. Console Output for the Judges
+    # 5. Log telemetry in JSON format
+    log_telemetry(current_second, live_telemetry, hdi_score, status_message, pit_command)
+
+    # 6. Console Output for the Judges
     print(f"Sec {current_second:02d} | Buffer: {len(decision_memory):02d}/30 | {status_message}")
 
     if pit_command:
+        stats['trigger_second'] = current_second
+        stats['alert_count'] += 1
         print("\n" + "="*60)
         print(f"🚨 ACTION: BOX BOX BOX (Safety Override Triggered) 🚨")
         print(f"🚨 REASON: {status_message}")
         print("="*60 + "\n")
         break
+    else:
+        stats['safe_count'] += 1
 
     time.sleep(0.2)
+
+# =====================================================================
+# SUMMARY REPORT
+# =====================================================================
+print("\n" + "="*60)
+print("📊 SIMULATION SUMMARY REPORT")
+print("="*60)
+print(f"✅ Safe Intervals: {stats['safe_count']} seconds")
+print(f"⚠️  Alert Triggered: Second {stats['trigger_second']}")
+print(f"📈 Buffer Management: 30-second FIFO window maintained")
+print(f"📝 JSON Log File: {log_file}")
+print("="*60 + "\n")
